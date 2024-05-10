@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{amsmath}
+\title{L Grammar}
+\author{C}
+\begin{document}
+	\maketitle
+	\section{Introduction}
+	\begin{align*} 
+		[\text{Prog}] &\to  [\text{Stmt}]^* \\ 
+		[\text{Stmt}] &\to  
+		\begin{cases}
+			\text{return} \ &[\text{Expr}] \\
+			\text{let} \ \textit{ident} &[\text{OptAssign}] \\
+			\textit{ident} = &[\text{Expr}]
+		\end{cases} \\
+		[\text{OptAssign}] &\to
+		\begin{cases}
+			= [\text{Expr}]\\
+			[\quad]
+		\end{cases} \\
+		[\text{Expr}]	&\to 
+		\begin{cases}
+			[\text{Term}] \\
+			[\text{BinExpr}] \\
+		\end{cases} \\	
+		[\text{Term}]	&\to 
+		\begin{cases}
+			\textit{IntLit} \\
+			\textit{ident} \\
+			([\text{Expr}])
+		\end{cases} \\	
+		[\text{BinExpr}]	&\to 
+		\begin{cases}
+			[\text{Expr}]\ + &[\text{Expr}] \\
+			[\text{Expr}]\ - &[\text{Expr}] \\
+			[\text{Expr}]\ * &[\text{Expr}] \\
+			[\text{Expr}]\ / &[\text{Expr}] \\
+		\end{cases}
+	\end{align*}
+\end{document}
