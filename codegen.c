@@ -35,7 +35,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** ht, size_
       break;
     case TokenIntLit:
       //printf("%s TokenIntLit: %s\n", debugshit, cur_token->data);
-      fprintf(outfile, "\tmov rax, %s\n\tpush rax\n", (char*) cur_token->data);
+      fprintf(outfile, "\tpush %s\n", (char*) cur_token->data);
       *stacksize += 1;
       break;
     case TokenPlus:
@@ -83,9 +83,15 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** ht, size_
       fprintf(outfile, "\tpush QWORD [rsp + %lu]\n", (*stacksize - *stack_loc - 1) * 8);
       *stacksize += 1; 
       break;
+    case TokenMinus:
+      codegen_internal(cur_token->children[0], outfile, ht, stacksize);
+      codegen_internal(cur_token->children[1], outfile, ht, stacksize);
+      fprintf(outfile, "\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n");
+      *stacksize -= 1;
+      break;    
     default:
-      *(volatile int*)0;
       fprintf(stderr, "Not implemented yet! %d\n\n", cur_token->type);
+      *(volatile int*)0;
       exit(69);
   }
 }
