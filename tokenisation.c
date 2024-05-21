@@ -185,15 +185,6 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 	return NULL;
 }
 
-void recursive_0x62e993033d90_killer(t_token* t) {
-	if(t->type == TokenDebugInvalid)
-		*(volatile int*)0;
-	if(t->children[0])
-		recursive_0x62e993033d90_killer(t->children[0]);
-	if(t->children[1])
-		recursive_0x62e993033d90_killer(t->children[1]);
-}
-
 // based on https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
 t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { // mul parent
 	#ifdef TOKENISATION_DEBUG 
@@ -220,41 +211,47 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 		t_tokenType cur = charToTokenType(**remaining);
 		if(!cur || tokenTypeToPrec(cur) == 0 || tokenTypeToPrec(cur) < min_prec) 
 			break;
-
+		printf("encountered operator %c\n", **remaining);
 		*remaining += 1; //consume operator, will need to be changed given more advanced operators are introduced
 		uint8_t prec = tokenTypeToPrec(cur);
 		t_associativity assoc = tokenTypeToAssoc(cur);
 
-		t_token* rhs = tryParseExpression(NULL, remaining, prec + (assoc = AssociativityLeft));
+		t_token* rhs = tryParseExpression(NULL, remaining, prec + (assoc == AssociativityLeft));
 		debug_log_token("rhs", rhs);
-		if(tokenTypeToPrec(rhs->type)) {
-			rhs->children[0] = returnToken;
-			returnToken = rhs;
-		} else {
-			t_token* construct;
-			if(returnToken->type == TokenInvalid || returnToken->type == 0) {
-				construct = returnToken;
-			} else {
-				construct = calloc(1, sizeof(t_token));
+		
+		if(returnToken->type && returnToken->type != TokenInvalid) { //if exists
+			if(!tokenTypeToPrec(returnToken->type)) {
+				fprintf(stderr, "invalid expression");
+				exit(9);
 			}
-			construct->type = cur;
-			printf("creating %s token, pointer %p, children %p, %p\n", token_str_lookup[cur], construct, lhs, rhs);
-			construct->children[0] = returnToken == construct ? lhs : returnToken;
-			construct->children[1] = rhs;
-			construct->data = NULL;
-			returnToken = construct;			
+			//paranoia but just in case
+			if(returnToken->children[1]) {
+				rec_debug_log_token("refit pre", returnToken);
+				printf("\n\n");
+				t_token* new_token = calloc(1, sizeof(t_token));
+				new_token->type = returnToken->type;
+				printf("refitting %s token %p with %p\n", token_str_lookup[returnToken->type], returnToken, new_token);
+				new_token->children[0] = returnToken->children[1];
+				new_token->children[1] = rhs;
+				returnToken->children[1] = new_token;
+				rec_debug_log_token("refit log", returnToken);
+			} else {
+				returnToken->children[1] = rhs;
+			}
+		} else {
+			printf("creating %s token %p\n", token_str_lookup[cur], returnToken);
+			returnToken->type = cur;
+			returnToken->children[0] = lhs;
+			returnToken->children[1] = rhs;
 		}
-	recursive_0x62e993033d90_killer(returnToken);
-}
+	}
 
 	if(returnToken->type == TokenInvalid || returnToken->type == 0) {
 		free(returnToken);
 		printf("invalid return token; returning %s token %p from tryParseExpr\n", token_str_lookup[lhs->type], lhs);
-		rec_debug_log_token("FUCKlhs", lhs);
 		return lhs;
 	}
 
-	rec_debug_log_token("FUCK", returnToken);	
 	return returnToken;
 }
 
