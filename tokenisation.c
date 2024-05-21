@@ -32,6 +32,16 @@ void debug_log_token(char* str, t_token* token) {
 		                            0, token->data ? (char*) token->data : "nil");
 }
 
+void rec_debug_log_token(char* str, t_token* token) {
+	debug_log_token(str, token);
+	if(token->children[0]) {
+		debug_log_token(str, token->children[0]);	
+	}
+	if(token->children[1]) {
+		debug_log_token(str, token->children[1]);	
+	}
+}
+
 size_t findKeywordPointerOffset(char* string) {
 	size_t pointerOffset = 0;
 	while(isalpha(string[pointerOffset]))
@@ -160,6 +170,7 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 		*remaining += 1;
 		free(returnToken);
 		t_token* expr = tryParseExpression(NULL, remaining, 0);
+		printf("\"Created\" %s token %p as part of a parentheses\n", token_str_lookup[expr->type], expr);
 		//returnToken->data = NULL;
 		//consume close paren
 		*remaining = whiteSpaceHandler(*remaining);
@@ -174,6 +185,15 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 	return NULL;
 }
 
+void recursive_0x62e993033d90_killer(t_token* t) {
+	if(t->type == TokenDebugInvalid)
+		*(volatile int*)0;
+	if(t->children[0])
+		recursive_0x62e993033d90_killer(t->children[0]);
+	if(t->children[1])
+		recursive_0x62e993033d90_killer(t->children[1]);
+}
+
 // based on https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
 t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { // mul parent
 	#ifdef TOKENISATION_DEBUG 
@@ -185,6 +205,7 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 	*remaining = whiteSpaceHandler(*remaining);
 	//get lhs
 	t_token* lhs = tryParseTerm(NULL, remaining); //should be either a bracketed expression or an int lit
+	debug_log_token("lhs", lhs);
 	if(!lhs) { //should never happen
 		fprintf(stderr, "in tryParseExpression, LHS not found!\n");
 		exit(EXIT_FAILURE);
@@ -192,7 +213,7 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 
 	//prepare return token
 	t_token* returnToken = calloc(1, sizeof(t_token));
-	returnToken->type = TokenInvalid;
+	returnToken->type = TokenDebugInvalid;
 
 	while(1) {
 		*remaining = whiteSpaceHandler(*remaining);
@@ -221,15 +242,19 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 			construct->children[0] = returnToken == construct ? lhs : returnToken;
 			construct->children[1] = rhs;
 			construct->data = NULL;
-			returnToken = construct;
+			returnToken = construct;			
 		}
-	}
+	recursive_0x62e993033d90_killer(returnToken);
+}
 
 	if(returnToken->type == TokenInvalid || returnToken->type == 0) {
 		free(returnToken);
 		printf("invalid return token; returning %s token %p from tryParseExpr\n", token_str_lookup[lhs->type], lhs);
+		rec_debug_log_token("FUCKlhs", lhs);
 		return lhs;
 	}
+
+	rec_debug_log_token("FUCK", returnToken);	
 	return returnToken;
 }
 
@@ -313,16 +338,6 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 	}
 	destructor(returnToken);
 	return NULL;
-}
-
-void rec_debug_log_token(char* str, t_token* token) {
-	debug_log_token(str, token);
-	if(token->children[0]) {
-		debug_log_token(str, token->children[0]);	
-	}
-	if(token->children[1]) {
-		debug_log_token(str, token->children[1]);	
-	}
 }
 
 t_token* tokenise(char** remaining) {
