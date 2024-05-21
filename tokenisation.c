@@ -1,4 +1,3 @@
-#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +11,9 @@
 
 #define EXT_FAILURE_PARSING 7
 
-const char *token_str_lookup[] = {"invalid", "Name", "assign", "eol", "paren", "scopen", "scope close", "intlit", "expr", "plus", "minus", "mul", "ret", "stmt", "prog", "ident", "div", "invaltoken"};
+#define TOKENISATION_DEBUG
+
+const char *token_str_lookup[] = {"DEBUG INVALID", "Name", "assign", "eol", "paren", "scopen", "scope close", "intlit", "expr", "plus", "minus", "mul", "ret", "stmt", "prog", "ident", "div", "declident", "invaltoken"};
 
 void destructor(t_token* t) {
 	if (t == NULL) 
@@ -24,8 +25,11 @@ void destructor(t_token* t) {
 }
 
 void debug_log_token(char* str, t_token* token) {
-	printf("%s\t\033[0;32m%p\033[0m, \tTokenType = %s, \tParent: %p \tChildren: %p, %p, \tData: %.8s\n", 
-		str, token, token_str_lookup[token->type], token->parent, token->children[0], token->children[1], token->data ? (char*) token->data : "nil");
+	printf("%s\t\033[0;32m%p\033[0m, TokenType = %s, Parent: %p Children: %p (%s), %p (%s), Data: %.8s\n", 
+		str, token, token_str_lookup[token->type], token->parent, token->children[0],
+		token->children[0] ? token_str_lookup[token->children[0]->type] : 0, 
+		token->children[1], token->children[1] ? token_str_lookup[token->children[1]->type] :
+		                            0, token->data ? (char*) token->data : "nil");
 }
 
 size_t findKeywordPointerOffset(char* string) {
@@ -79,7 +83,7 @@ t_tokenType charToTokenType(char c) {
 	}
 }
 
-int tokenTypeToPrec(t_tokenType t) {
+uint8_t tokenTypeToPrec(t_tokenType t) {
 	switch (t) {
 		case TokenPlus:
 		case TokenMinus:
@@ -92,7 +96,7 @@ int tokenTypeToPrec(t_tokenType t) {
 	}
 }
 
-int charToPrec(char c) {
+uint8_t charToPrec(char c) {
 		return tokenTypeToPrec(charToTokenType(c));
 }
 
@@ -118,16 +122,20 @@ t_token* tryParseIdent(t_token* parent, char** remaining) {
 }
 
 t_token* tryParseTerm(t_token* parent, char** remaining) {
+	#ifdef TOKENISATION_DEBUG 
+		printf("tryParseTerm, %s", *remaining);
+		if(parent != NULL) debug_log_token("parent", parent);
+		getchar();
+	#endif
+	
 	*remaining = whiteSpaceHandler(*remaining);
 	size_t intLitPointerOffset = findIntLitPointerOffset(*remaining);
 	size_t identPointerOffset = findKeywordPointerOffset(*remaining);
 
 	t_token* returnToken;
-	returnToken = malloc(sizeof(t_token));
+	returnToken = calloc(1, sizeof(t_token));
 	returnToken->parent = parent;
-	returnToken->children[0] = NULL;
-	returnToken->children[1] = NULL;
-	
+		
 	if(intLitPointerOffset) {
 		returnToken->type = TokenIntLit;
     char* intLitVal = malloc(intLitPointerOffset + 1);
@@ -150,13 +158,14 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 	} else if (**remaining == '(') {
 		//returnToken->type = TokenParen;
 		*remaining += 1;
-		returnToken = tryParseExpression(returnToken, remaining, 0);
+		free(returnToken);
+		t_token* expr = tryParseExpression(NULL, remaining, 0);
 		//returnToken->data = NULL;
 		//consume close paren
 		*remaining = whiteSpaceHandler(*remaining);
 		*remaining += 1;
 		
-		return returnToken;
+		return expr;
 	}
 
 	fprintf(stderr, "REACHED TOKEN DESTRUCTOR IN TERM PARSER");
@@ -166,61 +175,70 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 }
 
 // based on https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
-t_token* tryParseExpression(t_token* parent, char** remaining, int min_prec) {
-	printf("parsing expression: %s\n", *remaining);
-	
-	t_token* returnToken = NULL;
-	t_token* left_hand_side = tryParseTerm(NULL, remaining);
+t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { // mul parent
+	#ifdef TOKENISATION_DEBUG 
+		printf("tryParseExpression, %u, %s", min_prec, *remaining);
+		if(token) debug_log_token("parent", token);
+		getchar();
+	#endif	
+
 	*remaining = whiteSpaceHandler(*remaining);
-	
-	while(charToPrec(**remaining) && charToPrec(**remaining) >= min_prec) {
-		
-		printf("found operator %c\n", **remaining);
-		
-		t_tokenType token_type = charToTokenType(**remaining); //tokenminus
-		
-		int prec = charToPrec(**remaining); //precaddition
-		t_associativity assoc = charToAssoc(**remaining);
-		*remaining += 1;
-		t_token* tokenA;
-		tokenA = malloc(sizeof(t_token));		
-		t_token* right_hand_side = tryParseExpression(tokenA, remaining, 
-									 assoc == AssociativityLeft ? prec + 1 : prec);
+	//get lhs
+	t_token* lhs = tryParseTerm(NULL, remaining); //should be either a bracketed expression or an int lit
+	if(!lhs) { //should never happen
+		fprintf(stderr, "in tryParseExpression, LHS not found!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	//prepare return token
+	t_token* returnToken = calloc(1, sizeof(t_token));
+	returnToken->type = TokenInvalid;
+
+	while(1) {
 		*remaining = whiteSpaceHandler(*remaining);
-		
-		right_hand_side->parent = tokenA;
-		tokenA->type = token_type;
-		tokenA->children[0] = left_hand_side;
-		left_hand_side->parent = tokenA;
-		tokenA->children[1] = right_hand_side;
-		right_hand_side->parent = tokenA;
-		tokenA->data = NULL;
-		
-		if(!returnToken) 
-			returnToken = tokenA;
+		t_tokenType cur = charToTokenType(**remaining);
+		if(!cur || tokenTypeToPrec(cur) == 0 || tokenTypeToPrec(cur) < min_prec) 
+			break;
+
+		*remaining += 1; //consume operator, will need to be changed given more advanced operators are introduced
+		uint8_t prec = tokenTypeToPrec(cur);
+		t_associativity assoc = tokenTypeToAssoc(cur);
+
+		t_token* rhs = tryParseExpression(NULL, remaining, prec + (assoc = AssociativityLeft));
+		debug_log_token("rhs", rhs);
+		if(tokenTypeToPrec(rhs->type)) {
+			rhs->children[0] = returnToken;
+			returnToken = rhs;
+		} else {
+			t_token* construct;
+			if(returnToken->type == TokenInvalid || returnToken->type == 0) {
+				construct = returnToken;
+			} else {
+				construct = calloc(1, sizeof(t_token));
+			}
+			construct->type = cur;
+			printf("creating %s token, pointer %p, children %p, %p\n", token_str_lookup[cur], construct, lhs, rhs);
+			construct->children[0] = returnToken == construct ? lhs : returnToken;
+			construct->children[1] = rhs;
+			construct->data = NULL;
+			returnToken = construct;
+		}
 	}
 
-
-	if(!returnToken) { 
-		left_hand_side->parent = parent;
-		//debug_log_token("lhs ", left_hand_side);
-		printf("created %s token %p in left hand side\n", token_str_lookup[left_hand_side->type], returnToken);		
-		return left_hand_side;
+	if(returnToken->type == TokenInvalid || returnToken->type == 0) {
+		free(returnToken);
+		printf("invalid return token; returning %s token %p from tryParseExpr\n", token_str_lookup[lhs->type], lhs);
+		return lhs;
 	}
-	
-	if(returnToken) 
-		returnToken->parent = parent;
-	printf("created %s token %p in right hand side\n", token_str_lookup[returnToken->type], returnToken);	//debug_log_token("mpth ", returnToken);
 	return returnToken;
-	
-	//should never go here!!!!
-	fprintf(stderr, "REACHED DESTRUCTOR IN EXPR PARSING");
-	destructor(parent);
-	return NULL;
 }
 
 t_token* tryParseStatement(t_token* parent, char** remaining) {
-	printf("parsestatement: %s\n", *remaining);
+	#ifdef TOKENISATION_DEBUG 
+		printf("tryParseStatement, %s", *remaining);
+		debug_log_token("parent", parent);
+		getchar();
+	#endif	
 	*remaining = whiteSpaceHandler(*remaining);
 	size_t pointerOffset = findKeywordPointerOffset(*remaining);
 

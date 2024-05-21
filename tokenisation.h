@@ -10,7 +10,7 @@ typedef enum AssociativityTypes {
 } t_associativity;
 
 typedef enum TokenTypes {
-  TokenDeclIdent = 17,
+  TokenDebugInvalid = 0,
   TokenName = 1,
   TokenAssign = 2,
   TokenEOL = 3,
@@ -27,9 +27,11 @@ typedef enum TokenTypes {
   TokenProg = 14, //data s_statementPointer; LeafNode BUT parent
   TokenIdent = 15,
   TokenDiv = 16,
+  TokenDeclIdent = 17,
   TokenInvalid = 18
 } t_tokenType;
 
+const extern char* token_str_lookup[];
 
 typedef struct s_token {
   t_tokenType type;

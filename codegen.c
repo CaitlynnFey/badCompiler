@@ -90,9 +90,9 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** ht, size_
       *stacksize -= 1;
       break;    
     default:
-      fprintf(stderr, "Not implemented yet! %d\n\n", cur_token->type);
-      *(volatile int*)0;
-      exit(69);
+      fprintf(stderr, "Not implemented yet! %d %s\n", cur_token->type, token_str_lookup[cur_token->type]);
+      *(volatile int*)0; //breakpoint
+      exit(8);
   }
 }
 
