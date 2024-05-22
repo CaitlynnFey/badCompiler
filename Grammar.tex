@@ -4,14 +4,14 @@
 \author{Caitlynn Fey}
 \begin{document}
 	\maketitle
-	\section{Introduction}
 	\begin{align*} 
-		[\text{Prog}] &\to  [\text{Stmt}]^* \\ 
+		[\text{Prog}] &\to  [\text{Func}]^+ \\
+		[\text{Func}] &\to \textit{ident}(\textit{ident}^*)\ \{[\text{Stmt}]^*\} \\
 		[\text{Stmt}] &\to  
 		\begin{cases}
-			\text{return} \ &[\text{Expr}] \\
-			\text{let} \ \textit{ident} &[\text{OptAssign}] \\
-			\textit{ident} &[\text{OptAssign}]
+			\text{return} \ &[\text{Expr}]; \\
+			\text{let} \ \textit{ident} &[\text{OptAssign}]; \\
+			\textit{ident} &[\text{OptAssign}];
 		\end{cases} \\
 		[\text{OptAssign}] &\to
 		\begin{cases}
@@ -27,7 +27,8 @@
 		\begin{cases}
 			\textit{IntLit} \\
 			\textit{ident} \\
-			([\text{Expr}])
+			([\text{Expr}]) \\
+			\textit{ident}(\textit{ident}^*)
 		\end{cases} \\	
 		[\text{BinExpr}]	&\to 
 		\begin{cases}
