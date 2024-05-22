@@ -1,4 +1,4 @@
 let a = 3;
-let abc = 2;
 let b = 4;
-return a + b * abc;
+b = 2;
+return a + b;

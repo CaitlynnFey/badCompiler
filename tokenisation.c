@@ -11,7 +11,7 @@
 
 #define EXT_FAILURE_PARSING 7
 
-//#define TOKENISATION_DEBUG
+#define TOKENISATION_DEBUG
 
 const char *token_str_lookup[] = {"DEBUG INVALID", "Name", "assign", "eol", "paren", "scopen", "scope close", "intlit", "expr", "plus", "minus", "mul", "ret", "stmt", "prog", "ident", "div", "declident", "invaltoken"};
 
@@ -305,6 +305,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 	returnToken->children[0] = NULL;
 	returnToken->children[1] = NULL;
 	returnToken->parent = parent;	
+	
 	if(!strncmp("let", *remaining, pointerOffset)) {
 		#ifdef TOKENISATION_DEBUG
 			printf("parsed let\n");
@@ -381,8 +382,26 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		*remaining += 1;
 		return returnToken;
 	}
-	destructor(returnToken);
-	return NULL;
+
+	returnToken->type = TokenIdent;
+	returnToken->data = calloc(pointerOffset + 1, 1);
+	memcpy(returnToken->data, *remaining, pointerOffset);
+	*remaining += pointerOffset;
+	*remaining = whiteSpaceHandler(*remaining);
+
+	if(**remaining == '=') {
+		*remaining += 1;
+		returnToken->type = TokenAssign;
+		returnToken->children[0] = tryParseExpression(returnToken, remaining, 0);
+	}
+
+	*remaining = whiteSpaceHandler(*remaining);
+	if(**remaining != ';') {
+		fprintf(stderr, "failure parsing statement! no semicolon!\n");
+		exit(EXT_FAILURE_PARSING);
+	}
+	*remaining += 1;
+	return returnToken;
 }
 
 t_token* tokenise(char** remaining) {

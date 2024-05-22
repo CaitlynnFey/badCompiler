@@ -67,7 +67,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** ht, size_
     case TokenAssign:
       ;size_t* stack_loc = hashtable_get(*ht, cur_token->data);
       if(!stack_loc) {
-        fprintf(stderr, "\033[0;31mExpected valid, declared ident. Got ident: %s\033[0m\n", (char* )cur_token->data);
+        fprintf(stderr, "\033[0;31mExpected valid, declared ident. Got ident: '%s'\033[0m\n", (char* )cur_token->data);
         exit(-1);
       }
       codegen_internal(cur_token->children[0], outfile, ht, stacksize);
