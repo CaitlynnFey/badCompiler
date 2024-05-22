@@ -7,6 +7,8 @@
 
 #define EXT_FAIL_MALLOC 8
 
+// #define HT_DEBUG
+
 uint64_t FNV1a(char* data) {
 	uint64_t hash = 0xcbf29ce484222325;
 	for (int i = 0; i < strlen(data); i++) {
@@ -17,31 +19,36 @@ uint64_t FNV1a(char* data) {
 }
 
 t_hashtable* hashtable_create_internal(size_t size) {
-	printf("hashtable_create_internal\n");
+	#ifdef HT_DEBUG
+		printf("hashtable_create_internal(%zu)\n", size);
+	#endif
+	
 	t_hashtable* ht = malloc(sizeof(t_hashtable));
 	if(!ht) 
 		return NULL;
 	ht->size = size;
-	printf("1\n");
 	ht->filled_cells = 0;
 	ht->ht_begin = malloc(size * sizeof(t_htentry*));
 	memset(ht->ht_begin, 0, ht->size);
-	printf("2\n");
-	printf("htpointer creation: %p\n", ht);
+	#ifdef HT_DEBUG
+		printf("htpointer creation: %p\n", ht);
+	#endif
 	return ht;
 }
 
 t_hashtable* hashtable_create() {
-	printf("hashtable_create\n");
 	return hashtable_create_internal(16);
 }
 
 void hashtable_destroy(t_hashtable* ht) {
-	//dont care rn
+	//without scopes this isnt my priority right now
 }
 
 int hashtable_copy(t_hashtable* src, t_hashtable* dest) {
-	printf("hashtable_copy\n");
+	#ifdef HT_DEBUG
+		printf("hashtable_copy(%p, %p)\n", src, dest);
+	#endif
+
 	if(src->size > dest->size)
 		return -1;
 	for (int i = 0; i > src->size; i++) {
@@ -51,10 +58,18 @@ int hashtable_copy(t_hashtable* src, t_hashtable* dest) {
 } 
 
 t_hashtable* hashtable_put_internal(t_hashtable* ht, t_htentry* entry, uint64_t hash, size_t tries) {
-	printf("hashtableputinternal: %p\n", ht);
+	#ifdef HT_DEBUG
+		printf("hashtable_put_internal(%p, %p, 0x%xlu, %zu)\n", ht, entry, hash, tries);
+	#endif
 	if(ht->ht_begin[(tries + hash % ht->size) % ht->size]) 
 		return hashtable_put_internal(ht, entry, hash, tries + 1);
+	
 	ht->ht_begin[(tries + hash % ht->size) % ht->size] = entry;
+	
+	#ifdef HT_DEBUG
+		printf("put entry '%s' with value %p in %p after %zu tries with hash 0x%xlu\n", entry->key, entry->value, ht, tries, hash);
+	#endif
+	
 	if(++ht->filled_cells > ht->size * 0.33f) {
 		t_hashtable* new = hashtable_create_internal(ht->size*2);
 		if(hashtable_copy(ht, new)) {
@@ -63,13 +78,19 @@ t_hashtable* hashtable_put_internal(t_hashtable* ht, t_htentry* entry, uint64_t 
 		}
 		free(ht->ht_begin);
 		free(ht);
+		#ifdef HT_DEBUG
+			printf("destroying ht %p to move to %p\n", ht, new);
+		#endif
 		return new;
 	}
 	return ht;
 }
 
 t_hashtable* hashtable_put(t_hashtable* ht, t_htentry* entry) {
-	printf("hashtable_put: %s, %lu\n", entry->key, *(size_t*)entry->value);
+	#ifdef HT_DEBUG
+		printf("hashtable_put(%p, %p)\n", entry, entry);
+		printf("entry: key '%s' value %d\n", entry->key, *(int*) entry->value);
+	#endif
 	if(!entry)
 		return ht;
 	
@@ -78,20 +99,27 @@ t_hashtable* hashtable_put(t_hashtable* ht, t_htentry* entry) {
 }
 
 t_htentry* hashtable_get_internal(t_hashtable* ht, char* key, uint64_t keyhash, size_t tries) {
-	printf("hashtablegetinternal\n");
-	if(!(ht->ht_begin[((keyhash % ht->size) + tries) % ht->size]))
-		return NULL;
-	if(ht->ht_begin[((keyhash % ht->size) + tries) % ht->size]->key == key)
-		return ht->ht_begin[((keyhash % ht->size) + tries) % ht->size];
-	return hashtable_get_internal(ht, key, keyhash, tries + 1);
+	#ifdef HT_DEBUG
+		printf("hashtable_get_internal(%p, %s, %lu, %zu)\n", ht, key, keyhash, tries);
+	#endif
+	
+	if(ht->ht_begin[(keyhash + tries) % ht->size]) {
+		if(strcmp(ht->ht_begin[(keyhash + tries) % ht->size]->key, key))
+			return hashtable_get_internal(ht, key, keyhash, tries + 1);	
+		return ht->ht_begin[(keyhash + tries) % ht->size];
 	}
+	#ifdef HT_DEBUG
+		printf("didn't find '%s' in %p after %zu with hash 0x%xlu\n", key, ht, tries, keyhash);
+	#endif
+	return NULL;
+}
 
 void* hashtable_get(t_hashtable* ht, char* key) {
 	uint64_t keyhash = FNV1a(key);
 
-	t_htentry* entry= hashtable_get_internal(ht, key, keyhash, 0);
+	t_htentry* entry = hashtable_get_internal(ht, key, keyhash, 0);
 	if(!entry)
-		return entry;
+		return NULL;
 	return entry->value;
 }
 

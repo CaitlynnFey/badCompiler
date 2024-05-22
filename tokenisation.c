@@ -11,7 +11,7 @@
 
 #define EXT_FAILURE_PARSING 7
 
-#define TOKENISATION_DEBUG
+//#define TOKENISATION_DEBUG
 
 const char *token_str_lookup[] = {"DEBUG INVALID", "Name", "assign", "eol", "paren", "scopen", "scope close", "intlit", "expr", "plus", "minus", "mul", "ret", "stmt", "prog", "ident", "div", "declident", "invaltoken"};
 
@@ -153,7 +153,9 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 		intLitVal[intLitPointerOffset] = '\0';
 		returnToken->data = intLitVal;
     *remaining += intLitPointerOffset;
-    printf("creating intlit token value %s, pointer %p\n", intLitVal, returnToken);
+    #ifdef TOKENISATION_DEBUG
+    	printf("creating intlit token value %s, pointer %p\n", intLitVal, returnToken);
+    #endif
 		return returnToken;
 
 	} else if (identPointerOffset) {
@@ -162,16 +164,18 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 		strncpy(returnToken->data, *remaining, identPointerOffset);
     ((char*)returnToken->data)[identPointerOffset] = '\0';
     *remaining += identPointerOffset;
-    printf("creating ident token value %s, pointer %p\n", (char*)returnToken->data, returnToken);		
+    #ifdef TOKENISATION_DEBUG
+    	printf("creating ident token value %s, pointer %p\n", (char*)returnToken->data, returnToken);		
+    #endif
     return returnToken;
 		
 	} else if (**remaining == '(') {
-		//returnToken->type = TokenParen;
 		*remaining += 1;
 		free(returnToken);
 		t_token* expr = tryParseExpression(NULL, remaining, 0);
-		printf("\"Created\" %s token %p as part of a parentheses\n", token_str_lookup[expr->type], expr);
-		//returnToken->data = NULL;
+		#ifdef TOKENISATION_DEBUG
+			printf("\"Created\" %s token %p as part of a parentheses\n", token_str_lookup[expr->type], expr);
+		#endif
 		//consume close paren
 		*remaining = whiteSpaceHandler(*remaining);
 		*remaining += 1;
@@ -196,7 +200,11 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 	*remaining = whiteSpaceHandler(*remaining);
 	//get lhs
 	t_token* lhs = tryParseTerm(NULL, remaining); //should be either a bracketed expression or an int lit
-	debug_log_token("lhs", lhs);
+	
+	#ifdef TOKENISATION_DEBUG
+		debug_log_token("lhs", lhs);
+	#endif
+	
 	if(!lhs) { //should never happen
 		fprintf(stderr, "in tryParseExpression, LHS not found!\n");
 		exit(EXIT_FAILURE);
@@ -211,13 +219,20 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 		t_tokenType cur = charToTokenType(**remaining);
 		if(!cur || tokenTypeToPrec(cur) == 0 || tokenTypeToPrec(cur) < min_prec) 
 			break;
-		printf("encountered operator %c\n", **remaining);
+		
+		#ifdef TOKENISATION_DEBUG
+			printf("encountered operator %c\n", **remaining); //NOLINT
+		#endif 
+		
 		*remaining += 1; //consume operator, will need to be changed given more advanced operators are introduced
 		uint8_t prec = tokenTypeToPrec(cur);
 		t_associativity assoc = tokenTypeToAssoc(cur);
 
 		t_token* rhs = tryParseExpression(NULL, remaining, prec + (assoc == AssociativityLeft));
-		debug_log_token("rhs", rhs);
+
+		#ifdef TOKENISATION_DEBUG
+			debug_log_token("rhs", rhs);
+		#endif
 		
 		if(returnToken->type && returnToken->type != TokenInvalid) { //if exists
 			if(!tokenTypeToPrec(returnToken->type)) {
@@ -226,20 +241,34 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 			}
 			//paranoia but just in case
 			if(returnToken->children[1]) {
-				rec_debug_log_token("refit pre", returnToken);
-				printf("\n\n");
+				#ifdef TOKENISATION_DEBUG
+					rec_debug_log_token("refit pre", returnToken);
+					printf("\n\n");
+				#endif
+				
 				t_token* new_token = calloc(1, sizeof(t_token));
 				new_token->type = returnToken->type;
-				printf("refitting %s token %p with %p\n", token_str_lookup[returnToken->type], returnToken, new_token);
+
+				#ifdef TOKENISATION_DEBUG
+					printf("refitting %s token %p with %p\n", token_str_lookup[returnToken->type], returnToken, new_token);
+				#endif
+				
 				new_token->children[0] = returnToken->children[1];
 				new_token->children[1] = rhs;
 				returnToken->children[1] = new_token;
-				rec_debug_log_token("refit log", returnToken);
+
+				#ifdef TOKENISATION_DEBUG
+					rec_debug_log_token("refit log", returnToken);
+				#endif
+				
 			} else {
 				returnToken->children[1] = rhs;
 			}
 		} else {
-			printf("creating %s token %p\n", token_str_lookup[cur], returnToken);
+			#ifdef TOKENISATION_DEBUG
+				printf("creating %s token %p\n", token_str_lookup[cur], returnToken);
+			#endif
+			
 			returnToken->type = cur;
 			returnToken->children[0] = lhs;
 			returnToken->children[1] = rhs;
@@ -248,7 +277,11 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 
 	if(returnToken->type == TokenInvalid || returnToken->type == 0) {
 		free(returnToken);
-		printf("invalid return token; returning %s token %p from tryParseExpr\n", token_str_lookup[lhs->type], lhs);
+
+		#ifdef  TOKENISATION_DEBUG
+			printf("invalid return token; returning %s token %p from tryParseExpr\n", token_str_lookup[lhs->type], lhs);
+		#endif
+		
 		return lhs;
 	}
 
@@ -273,23 +306,31 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 	returnToken->children[1] = NULL;
 	returnToken->parent = parent;	
 	if(!strncmp("let", *remaining, pointerOffset)) {
-		printf("parsed let\n");
+		#ifdef TOKENISATION_DEBUG
+			printf("parsed let\n");
+		#endif
+		
 		*remaining += pointerOffset;
 		returnToken->type = TokenDeclIdent;
 		*remaining = whiteSpaceHandler(*remaining);
 		size_t keywordPointerOffset = findKeywordPointerOffset(*remaining);
+		
 		if(!keywordPointerOffset) {
 			fprintf(stderr, "let not followed by ident!\n");
 			exit(EXT_FAILURE_PARSING);
 		}
+		
 		char* ident = malloc(sizeof(char) * keywordPointerOffset + 1);
 		ident[keywordPointerOffset] = '\0';
 		strncpy(ident, *remaining, keywordPointerOffset);
 		returnToken->data = ident;
 		*remaining += keywordPointerOffset;
 		*remaining = whiteSpaceHandler(*remaining);
-		printf("parsed ident, ident: %s\n", (char*) returnToken->data);
-
+		
+		#ifdef TOKENISATION_DEBUG
+			printf("parsed ident, ident: %s\n", (char*) returnToken->data);
+		#endif
+		
 		if(**remaining == '=') {
 			*remaining += 1;
 			*remaining = whiteSpaceHandler(*remaining);
@@ -302,7 +343,9 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 				fprintf(stderr, "expected expression after '='!\n");
 				exit(EXT_FAILURE_PARSING);
 			}
-			printf("parsed =\n");
+			#ifdef TOKENISATION_DEBUG
+				printf("parsed =\n");
+			#endif
 			assignToken->data = ident;
 			returnToken->children[0] = assignToken;
 		}
@@ -311,10 +354,15 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 			fprintf(stderr, "error parsing let, no semicolon\n");
 			exit(EXT_FAILURE_PARSING);
 		}
+		
 		*remaining += 1;
-		debug_log_token("let", returnToken);
-		if(returnToken->children[0])
-			debug_log_token("ltcld", returnToken->children[0]);
+		
+		#ifdef TOKENISATION_DEBUG
+			debug_log_token("let", returnToken);
+			if(returnToken->children[0])
+				debug_log_token("ltcld", returnToken->children[0]);
+		#endif
+		
 		return returnToken;
 	} else if (!strncmp("return", *remaining, pointerOffset)) {
 		returnToken->type = TokenReturn;
@@ -348,7 +396,7 @@ t_token* tokenise(char** remaining) {
 	t_statement_pointer* prev = NULL;
 	for(t_token* t; t; t = tryParseStatement(returnToken, remaining)) {
 		//rec_debug_log_token("tkrc", t);
-		printf("pointer: %p\n", t);
+		//printf("pointer: %p\n", t);
 		t_statement_pointer* p = malloc(sizeof(t_statement_pointer));
 		p->next = NULL;
 		p->statement = t;
