@@ -11,9 +11,9 @@
 
 #define EXT_FAILURE_PARSING 7
 
-#define TOKENISATION_DEBUG
+// #define TOKENISATION_DEBUG
 
-const char *token_str_lookup[] = {"DEBUG INVALID", "Name", "assign", "eol", "paren", "scopen", "scope close", "intlit", "expr", "plus", "minus", "mul", "ret", "stmt", "prog", "ident", "div", "declident", "invaltoken"};
+const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "prog", "ident", "div", "declident", "invaltoken"};
 
 void destructor(t_token* t) {
 	if (t == NULL) 
@@ -80,8 +80,6 @@ t_tokenType charToTokenType(char c) {
 			return TokenMul;
 		case '/':
 			return TokenDiv;
-		case ';':
-			return TokenEOL;
 		case '{':
 			return TokenScopeOpen;
 		case '}':

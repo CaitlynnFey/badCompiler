@@ -11,24 +11,19 @@ typedef enum AssociativityTypes {
 
 typedef enum TokenTypes {
   TokenDebugInvalid = 0,
-  TokenName = 1,
-  TokenAssign = 2,
-  TokenEOL = 3,
-  TokenParen = 4,
-  TokenScopeOpen = 5,
-  TokenScopeClose = 6,
-  TokenIntLit = 7, //data pointer to STRING!! of value; LeafNode
-  TokenExpr = 8,
-  TokenPlus = 9,
-  TokenMinus = 10,
-  TokenMul = 11,
-  TokenReturn = 12, //one child only.
-  TokenStmt = 13,
-  TokenProg = 14, //data s_statementPointer; LeafNode BUT parent
-  TokenIdent = 15,
-  TokenDiv = 16,
-  TokenDeclIdent = 17,
-  TokenInvalid = 18
+  TokenAssign = 1, // data string name of assigned ident
+  TokenScopeOpen = 2, // tbd
+  TokenScopeClose = 3, // tbd
+  TokenIntLit = 4, // data pointer to STRING!! of value; LeafNode
+  TokenPlus = 5, // two children
+  TokenMinus = 6, // two children
+  TokenMul = 7,
+  TokenReturn = 8, // one child only.
+  TokenProg = 9, // data s_statementPointer; LeafNode  
+  TokenIdent = 10, // data string of ident name
+  TokenDiv = 11,
+  TokenDeclIdent = 12, // data string of ident name
+  TokenInvalid = 13
 } t_tokenType;
 
 const extern char* token_str_lookup[];
