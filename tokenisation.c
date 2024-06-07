@@ -65,8 +65,45 @@ size_t findNonAlNumPointerOffset(char* string) {
 
 char* whiteSpaceHandler(char* string) {
 	size_t whitespaces = 0;
-	while(isspace(string[whitespaces])) 
+	char flags; // LSB line comment, next one up block comment
+	while(1) {
+	if(*(string + whitespaces + 1) == '\0')
+			return string + whitespaces + 1;
+		
+		if(flags) {
+			if((flags & 1) && *(string + whitespaces) == '\n') {
+				whitespaces++;
+				flags ^= 1;
+				continue;
+			}
+			
+			if((flags & 2) && *(string + whitespaces) == '*' && * (string + whitespaces + 1) == '/') {
+				whitespaces += 2;
+				flags ^= 2;
+				continue;
+			}
+			whitespaces++;
+			continue;
+		}
+		
+		if(*(string + whitespaces) == '/') {
+			if(*(string + whitespaces + 1) == '/') {
+				whitespaces += 2;
+				flags ^= 1;
+				continue;
+			}
+			
+			if(*(string + whitespaces + 1) == '*') {
+				whitespaces += 2;
+				flags ^= 2;
+				continue;
+			}
+		}
+
+		if(!isspace(*(string + whitespaces))) 
+			break;	
 		whitespaces++;
+	}
 	return string + whitespaces;
 }
 
