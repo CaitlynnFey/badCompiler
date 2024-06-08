@@ -108,18 +108,33 @@ char* whiteSpaceHandler(char* string) {
 }
 
 char* getFunctionName(char* string) {
-	size_t len = 0;
-	char* orig = string;
+	char* paren = strchr(string, '(');
+	size_t offset = 1;
+	uint_fast8_t flag;
 	while(1) {
-		string = whiteSpaceHandler(string + len);
-		if(*string != '(') {
-			len++;
+		if(flag) {
+			if(*(paren - offset) == '*' && *(paren - offset - 1) == '/') {
+				flag = 0;
+				offset += 2;
+				continue;
+			}
+			offset++;
 			continue;
 		}
-		char* ret = calloc(1, (len + 1) * sizeof(char));
-		memcpy(ret, orig, len);
-		return ret;
+		if(isspace(*(paren - offset))) {
+			offset++;
+			continue;
+		}
+		if(*(paren - offset) == '/' && *(paren - offset - 1) == '*') {	
+			flag = 1;
+			offset += 2;
+			continue;
+		}
+		break;	
 	}
+	char* ret = calloc(1, paren - string - offset + 1);
+	memcpy(ret, string, paren - string - offset);
+	return ret;
 }
 
 t_tokenType charToTokenType(char c) {
