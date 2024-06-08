@@ -14,7 +14,7 @@ typedef enum TokenTypes {
   TokenAssign = 1, // data string name of assigned ident
   TokenScopeOpen = 2, // tbd
   TokenScopeClose = 3, // tbd
-  TokenIntLit = 4, // data pointer to STRING!! of value; LeafNode
+  TokenIntLit = 4, // data pointer to STRING!! of value; possible child
   TokenPlus = 5, // two children
   TokenMinus = 6, // two children
   TokenMul = 7,
@@ -23,7 +23,8 @@ typedef enum TokenTypes {
   TokenIdent = 10, // data string of ident name
   TokenDiv = 11,
   TokenDeclIdent = 12, // data string of ident name
-  TokenInvalid = 13
+  TokenFuncCall = 13, // data string of func name, child of args
+  TokenInvalid = 14
 } t_tokenType;
 
 const extern char* token_str_lookup[];

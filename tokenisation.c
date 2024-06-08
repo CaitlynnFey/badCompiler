@@ -13,7 +13,7 @@
 
 // #define TOKENISATION_DEBUG
 
-const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "prog", "ident", "div", "declident", "invaltoken"};
+const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "prog", "ident", "div", "declident", "funccall", "invaltoken"};
 
 void destructor(t_token* t) {
 	if (t == NULL) 
@@ -105,6 +105,21 @@ char* whiteSpaceHandler(char* string) {
 		whitespaces++;
 	}
 	return string + whitespaces;
+}
+
+char* getFunctionName(char* string) {
+	size_t len = 0;
+	char* orig = string;
+	while(1) {
+		string = whiteSpaceHandler(string + len);
+		if(*string != '(') {
+			len++;
+			continue;
+		}
+		char* ret = calloc(1, (len + 1) * sizeof(char));
+		memcpy(ret, orig, len);
+		return ret;
+	}
 }
 
 t_tokenType charToTokenType(char c) {
