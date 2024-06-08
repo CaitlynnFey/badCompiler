@@ -42,6 +42,14 @@ void rec_debug_log_token(char* str, t_token* token) {
 	}
 }
 
+inline void expect_consume_char(char** remaining, char c) {
+	if(**remaining != c) {
+		fprintf(stderr, "Failed expect_consume_char with string \"%s\", expecting char '%c'\n", *remaining, c);
+		exit(9);
+	}
+}
+
+
 size_t findKeywordPointerOffset(char* string) {
 	size_t pointerOffset = 0;
 	while(isalpha(string[pointerOffset]))
@@ -135,6 +143,14 @@ char* getFunctionName(char* string) {
 	char* ret = calloc(1, paren - string - offset + 1);
 	memcpy(ret, string, paren - string - offset);
 	return ret;
+}
+
+
+void expect_consume_chars(char** remaining, const char* str) {
+	for(size_t i = 0; i < strlen(str); i++) {
+		*remaining = whiteSpaceHandler(*remaining);
+		expect_consume_char(remaining, str[i]);
+	}
 }
 
 t_tokenType charToTokenType(char c) {
