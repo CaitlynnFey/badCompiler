@@ -13,7 +13,7 @@
 
 // #define TOKENISATION_DEBUG
 
-const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "prog", "ident", "div", "declident", "funccall", "invaltoken"};
+const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "prog", "ident", "div", "declident", "declfunc", "funccall", "invaltoken"};
 
 void destructor(t_token* t) {
 	if (t == NULL) 

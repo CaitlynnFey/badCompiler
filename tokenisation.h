@@ -1,5 +1,6 @@
 #ifndef TOKENISATION_H
 #define TOKENISATION_H
+#include "hashtable.h"
 #include <stddef.h>
 
 typedef enum AssociativityTypes {
@@ -19,12 +20,13 @@ typedef enum TokenTypes {
   TokenMinus = 6, // two children
   TokenMul = 7,
   TokenReturn = 8, // one child only.
-  TokenProg = 9, // data s_statementPointer; LeafNode  
+  TokenProg = 9, // leaf, data ht of funcs  
   TokenIdent = 10, // data string of ident name
   TokenDiv = 11,
   TokenDeclIdent = 12, // data string of ident name
-  TokenFuncCall = 13, // data string of func name, child of args
-  TokenInvalid = 14
+  TokenDeclFunc = 13, // data pointer to t_func_data, leaf
+  TokenFuncCall = 14, // data string of func name, child of args
+  TokenInvalid = 15
 } t_tokenType;
 
 const extern char* token_str_lookup[];
@@ -41,6 +43,11 @@ typedef struct s_statementPointer {
   struct s_statementPointer* next;
 } t_statement_pointer;
 
+typedef struct s_func_data {
+  char* ident;
+  t_statement_pointer* statements;
+  t_hashtable* identht;
+} t_func_data;
 
 void destructor(t_token* t);
 
