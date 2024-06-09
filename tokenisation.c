@@ -539,7 +539,7 @@ t_token* tryParseFunction(char** remaining) {
 
 	t_statement_pointer* prev = NULL;	
 	for(t_token* t = tryParseStatement(ret, remaining); t; t = tryParseStatement(ret, remaining)) {
-		if(t->type < 0 || t->type > 15)
+		if(t->type < TokenDebugInvalid || t->type > TokenInvalid)
 			break;
 		t_statement_pointer* p = calloc(1, sizeof(t_statement_pointer));
 		p->statement = t;
@@ -572,7 +572,7 @@ t_token* tokenise(char** remaining) {
 			t ? printf("of type %d ident %s\n", t->type, 
 			           ((t_func_data*)t->data)->ident) : printf("\n"); 
 		#endif
-		if(t->type < 0 || t->type > 15)
+		if(t->type < TokenDebugInvalid || t->type > TokenInvalid)
 			break;
 		t_htentry* entry = calloc(1, sizeof(t_htentry));
 		entry->key = ((t_func_data*)t->data )->ident;
