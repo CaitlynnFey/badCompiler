@@ -20,9 +20,11 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** vars, siz
     return;
   
   switch(cur_token->type) {
-    case TokenProg:
+    case TokenDeclFunc:
       {
-        fprintf(outfile, "global _start\n\n_start:\n");
+        fprintf(outfile, "%s:\n", 
+                strcmp(((t_func_data*)cur_token->data)->ident, "main") ? 
+                ((t_func_data*)cur_token->data)->ident : "_start");
         t_statement_pointer* p_ = cur_token->data;
         for (t_statement_pointer* p = p_->next; p->next || p->statement;) {
           codegen_internal(p->statement, outfile, vars, stacksize);
@@ -137,16 +139,9 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable** vars, siz
 }
 
 void codegen(t_token* cur_token, FILE* outfile) {
-  t_hashtable* ht = hashtable_create();
-  if(!ht)
-    exit(99);
-  t_hashtable** ht_ref = calloc(1, sizeof(t_hashtable*));
-  if(!ht_ref) {
-    fprintf(stderr, "failed to allocate hashtable reference\n");
-    exit(99);
-  }
-  *ht_ref = ht;
-  size_t* stacksize = malloc(sizeof(size_t));
-  memset(stacksize, 0, sizeof(size_t));
-  codegen_internal(cur_token, outfile, ht_ref, stacksize);
+  t_token* mainfunc = hashtable_get(cur_token->data, "main");
+  fprintf(outfile, "global _start\n\n");
+  codegen_internal(mainfunc, outfile, 
+                   &((t_func_data*)mainfunc->data)->identht, 
+                   &((t_func_data*)mainfunc->data)->identht->filled_cells);
 }

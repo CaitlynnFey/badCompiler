@@ -5,11 +5,14 @@
 #include <ctype.h>
 
 #include "tokenisation.h"
+#include "hashtable.h"
 
 #define PRECEDENCE_MULTIPLICATION 2
 #define PRECEDENCE_ADDITION 1
 
 #define EXT_FAILURE_PARSING 7
+
+#define WHITESPACE() *remaining = whiteSpaceHandler(*remaining)
 
 // #define TOKENISATION_DEBUG
 
@@ -42,13 +45,19 @@ void rec_debug_log_token(char* str, t_token* token) {
 	}
 }
 
-inline void expect_consume_char(char** remaining, char c) {
+void expect_consume_char(char** remaining, char c) {
 	if(**remaining != c) {
 		fprintf(stderr, "Failed expect_consume_char with string \"%s\", expecting char '%c'\n", *remaining, c);
 		exit(9);
 	}
+	*remaining += 1;
 }
 
+uint_least8_t try_consume_char(char** remaining, char c) {
+	uint_least8_t ret = **remaining == c;
+	*remaining += 1;
+	return ret;
+}
 
 size_t findKeywordPointerOffset(char* string) {
 	size_t pointerOffset = 0;
@@ -115,8 +124,10 @@ char* whiteSpaceHandler(char* string) {
 	return string + whitespaces;
 }
 
-char* getFunctionName(char* string) {
+size_t getFunctionNameOffset(char* string) {
 	char* paren = strchr(string, '(');
+	if(!paren)
+		return 0; 
 	size_t offset = 1;
 	uint_fast8_t flag;
 	while(1) {
@@ -140,15 +151,13 @@ char* getFunctionName(char* string) {
 		}
 		break;	
 	}
-	char* ret = calloc(1, paren - string - offset + 1);
-	memcpy(ret, string, paren - string - offset);
-	return ret;
+	return paren - string - offset;
 }
 
 
 void expect_consume_chars(char** remaining, const char* str) {
 	for(size_t i = 0; i < strlen(str); i++) {
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		expect_consume_char(remaining, str[i]);
 	}
 }
@@ -219,7 +228,7 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 		getchar();
 	#endif
 	
-	*remaining = whiteSpaceHandler(*remaining);
+	WHITESPACE();
 	size_t intLitPointerOffset = findIntLitPointerOffset(*remaining);
 	size_t identPointerOffset = findKeywordPointerOffset(*remaining);
 
@@ -258,7 +267,7 @@ t_token* tryParseTerm(t_token* parent, char** remaining) {
 			printf("\"Created\" %s token %p as part of a parentheses\n", token_str_lookup[expr->type], expr);
 		#endif
 		//consume close paren
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		*remaining += 1;
 		
 		return expr;
@@ -278,7 +287,7 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 		getchar();
 	#endif	
 
-	*remaining = whiteSpaceHandler(*remaining);
+	WHITESPACE();
 	//get lhs
 	t_token* lhs = tryParseTerm(NULL, remaining); //should be either a bracketed expression or an int lit
 	
@@ -296,7 +305,7 @@ t_token* tryParseExpression(t_token* token, char** remaining, int min_prec) { //
 	returnToken->type = TokenDebugInvalid;
 
 	while(1) {
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		t_tokenType cur = charToTokenType(**remaining);
 		if(!cur || tokenTypeToPrec(cur) == 0 || tokenTypeToPrec(cur) < min_prec) 
 			break;
@@ -375,7 +384,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		debug_log_token("parent", parent);
 		getchar();
 	#endif	
-	*remaining = whiteSpaceHandler(*remaining);
+	WHITESPACE();
 	size_t pointerOffset = findKeywordPointerOffset(*remaining);
 
 	if(!pointerOffset) 
@@ -394,7 +403,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		
 		*remaining += pointerOffset;
 		returnToken->type = TokenDeclIdent;
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		size_t keywordPointerOffset = findKeywordPointerOffset(*remaining);
 		
 		if(!keywordPointerOffset) {
@@ -407,7 +416,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		strncpy(ident, *remaining, keywordPointerOffset);
 		returnToken->data = ident;
 		*remaining += keywordPointerOffset;
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		
 		#ifdef TOKENISATION_DEBUG
 			printf("parsed ident, ident: %s\n", (char*) returnToken->data);
@@ -415,7 +424,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		
 		if(**remaining == '=') {
 			*remaining += 1;
-			*remaining = whiteSpaceHandler(*remaining);
+			WHITESPACE();
 			t_token* assignToken = malloc(sizeof(t_token));
 			assignToken->type = TokenAssign;
 			assignToken->parent = returnToken;
@@ -431,7 +440,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 			assignToken->data = ident;
 			returnToken->children[0] = assignToken;
 		}
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		if(**remaining != ';') {
 			fprintf(stderr, "error parsing let, no semicolon\n");
 			exit(EXT_FAILURE_PARSING);
@@ -455,7 +464,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 			fprintf(stderr, "failure parsing return! No Expr!\n");
 			exit(EXT_FAILURE_PARSING);
 		}
-		*remaining = whiteSpaceHandler(*remaining);
+		WHITESPACE();
 		if(**remaining != ';') {
 			fprintf(stderr, "failure parsing return! no semicolon!\n");
 			exit(EXT_FAILURE_PARSING);
@@ -468,7 +477,7 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 	returnToken->data = calloc(pointerOffset + 1, 1);
 	memcpy(returnToken->data, *remaining, pointerOffset);
 	*remaining += pointerOffset;
-	*remaining = whiteSpaceHandler(*remaining);
+	WHITESPACE();
 
 	if(**remaining == '=') {
 		*remaining += 1;
@@ -476,13 +485,76 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 		returnToken->children[0] = tryParseExpression(returnToken, remaining, 0);
 	}
 
-	*remaining = whiteSpaceHandler(*remaining);
+	WHITESPACE();
 	if(**remaining != ';') {
 		fprintf(stderr, "failure parsing statement! no semicolon!\n");
 		exit(EXT_FAILURE_PARSING);
 	}
 	*remaining += 1;
 	return returnToken;
+}
+
+t_hashtable* tryParseIdentList(char** remaining, t_hashtable* ht) {
+	size_t i = 0;
+	do {
+		WHITESPACE();
+		size_t keywordoffset = findKeywordPointerOffset(*remaining);
+		char* key = calloc(keywordoffset + 2, sizeof(char));
+		memcpy(key, *remaining,keywordoffset + 1);
+		t_htentry* entry = calloc(1, sizeof (t_htentry));
+		entry->key = key;
+		entry->value = calloc(1, sizeof(size_t));
+		*((size_t*) entry->value) = i;
+		
+		ht = hashtable_put(ht, entry);
+		*remaining += keywordoffset;
+		WHITESPACE();
+	} while (try_consume_char(remaining, ','));
+	*remaining -= 1;
+	return ht;
+}
+
+t_token* tryParseFunction(char** remaining) {
+	WHITESPACE();
+	size_t fn_idnt_offset = getFunctionNameOffset(*remaining);
+	if(fn_idnt_offset == 0)
+		return NULL;
+	char* fn_idnt = calloc(fn_idnt_offset + 2, sizeof(char));
+	memcpy(fn_idnt, *remaining, fn_idnt_offset + 1);
+	*remaining += fn_idnt_offset + 1;
+	WHITESPACE();
+	t_func_data* data = calloc(1, sizeof(t_func_data));
+	data->ident = fn_idnt;
+	
+	expect_consume_char(remaining, '(');
+	data->identht = tryParseIdentList(remaining, hashtable_create());
+	WHITESPACE();
+	expect_consume_char(remaining, ')');
+	WHITESPACE();	
+	
+	expect_consume_char(remaining, '{');
+	t_token* ret = calloc(1, sizeof(t_token));
+	ret->type = TokenDeclFunc;
+	ret->data = data;
+
+	t_statement_pointer* prev = NULL;	
+	for(t_token* t = tryParseStatement(ret, remaining); t; t = tryParseStatement(ret, remaining)) {
+		if(t->type < 0 || t->type > 15)
+			break;
+		t_statement_pointer* p = calloc(1, sizeof(t_statement_pointer));
+		p->statement = t;
+		if(prev) 
+			prev->next = p;
+		else 
+			data->statements = p;
+		prev = p;
+	}
+	WHITESPACE();
+	expect_consume_char(remaining, '}');	
+	#ifdef TOKENISATION_DEBUG
+		printf("created function token %#zx ident %s\n", (size_t)ret, ((t_func_data*)ret->data)->ident);
+	#endif
+	return ret;
 }
 
 t_token* tokenise(char** remaining) {
@@ -493,23 +565,21 @@ t_token* tokenise(char** remaining) {
 	returnToken->children[1] = NULL;
 	returnToken->parent = NULL;
 
-	t_statement_pointer* prev = NULL;
-	for(t_token* t; t; t = tryParseStatement(returnToken, remaining)) {
-		//rec_debug_log_token("tkrc", t);
-		//printf("pointer: %p\n", t);
-		t_statement_pointer* p = malloc(sizeof(t_statement_pointer));
-		p->next = NULL;
-		p->statement = t;
-		if (!p->statement->type) {
+	t_hashtable* ht = hashtable_create();
+	for(t_token* t = tryParseFunction(remaining); t; t = tryParseFunction(remaining)) {
+		#ifdef TOKENISATION_DEBUG
+			printf("parsed function token %#zx\n", (size_t) t);
+			t ? printf("of type %d ident %s\n", t->type, 
+			           ((t_func_data*)t->data)->ident) : printf("\n"); 
+		#endif
+		if(t->type < 0 || t->type > 15)
 			break;
-		}
-		if(prev) {
-		prev->next = p;
-		} else {
-			returnToken->data = p;
-		}
-		prev = p;
+		t_htentry* entry = calloc(1, sizeof(t_htentry));
+		entry->key = ((t_func_data*)t->data )->ident;
+		entry->value = t;
+		ht = hashtable_put(ht, entry);
 	}
+	returnToken->data = ht;
 	return returnToken;
 }
 
