@@ -34,7 +34,7 @@ int main(const int argc, char** argv) {
   
   for (int i = 0; i < argc - 1; i++) {
     char* a = filebuffers[i];
-    t_token* prog = tokenise(&a);
+    t_prog_data* prog = tokenise(&a);
     FILE* outfile = fopen("out.asm", "w");
     codegen(prog, outfile);
     fclose(outfile);

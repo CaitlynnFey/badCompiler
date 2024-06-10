@@ -3,6 +3,6 @@
 #include "tokenisation.h"
 #include <stdio.h>
 
-void codegen(t_token* cur_token, FILE* outfile);
+void codegen(t_prog_data* prog_data, FILE* outfile);
 
 #endif

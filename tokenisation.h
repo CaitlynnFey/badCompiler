@@ -20,13 +20,11 @@ typedef enum TokenTypes {
   TokenMinus = 6, // two children
   TokenMul = 7,
   TokenReturn = 8, // one child only.
-  TokenProg = 9, // leaf, data ht of funcs  
-  TokenIdent = 10, // data string of ident name
-  TokenDiv = 11,
-  TokenDeclIdent = 12, // data string of ident name
-  TokenDeclFunc = 13, // data pointer to t_func_data, leaf
-  TokenFuncCall = 14, // data string of func name, child of args
-  TokenInvalid = 15
+  TokenIdent = 9, // data string of ident name
+  TokenDiv = 10,
+  TokenDeclIdent = 11, // data string of ident name
+  TokenFuncCall = 12, // data string of func name, child of args
+  TokenInvalid = 13
 } t_tokenType;
 
 const extern char* token_str_lookup[];
@@ -49,10 +47,19 @@ typedef struct s_func_data {
   t_hashtable* identht;
 } t_func_data;
 
+typedef struct s_func_ptr {
+  t_func_data* func;
+  struct s_func_ptr* next;
+} t_func_ptr;
+
+typedef struct s_prog_data {
+  t_func_ptr* funcs;
+  t_hashtable* funcht;
+} t_prog_data;
+
 void destructor(t_token* t);
 
 void debug_log_token(char* str, t_token*);
-t_token* tokenise( char** remaining);
-t_token* tryParseExpression(t_token* parent, char** remaining, int min_prec);
-
+t_prog_data* tokenise( char** remaining);
+t_token* tryParseExpression(t_token* token, char** remaining, int min_prec);
 #endif

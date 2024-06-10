@@ -7,7 +7,7 @@
 
 #define EXT_FAIL_MALLOC 8
 
-// #define HT_DEBUG
+#define HT_DEBUG
 
 uint64_t FNV1a(char* data) {
 	uint64_t hash = 0xcbf29ce484222325;
