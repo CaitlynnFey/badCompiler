@@ -7,7 +7,7 @@
 
 #define EXT_FAIL_MALLOC 8
 
-#define HT_DEBUG
+// #define HT_DEBUG
 
 uint64_t FNV1a(char* data) {
 	uint64_t hash = 0xcbf29ce484222325;
@@ -100,7 +100,7 @@ t_hashtable* hashtable_put(t_hashtable* ht, t_htentry* entry) {
 
 t_htentry* hashtable_get_internal(t_hashtable* ht, char* key, uint64_t keyhash, size_t tries) {
 	#ifdef HT_DEBUG
-		printf("hashtable_get_internal(%p, %s, %lu, %zu)\n", ht, key, keyhash, tries);
+		printf("hashtable_get_internal(%p, '%s', %lu, %zu)\n", ht, key, keyhash, tries);
 	#endif
 	
 	if(ht->ht_begin[(keyhash + tries) % ht->size]) {

@@ -1,4 +1,8 @@
 main() {
-  let a = 3;
-  return a;
+  let test = func();
+  return test;
+}
+
+func() {
+  return 3;
 }

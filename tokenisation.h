@@ -23,7 +23,7 @@ typedef enum TokenTypes {
   TokenIdent = 9, // data string of ident name
   TokenDiv = 10,
   TokenDeclIdent = 11, // data string of ident name
-  TokenFuncCall = 12, // data string of func name, child of args
+  TokenFuncCall = 12, // data t_func_call, leaf
   TokenInvalid = 13
 } t_tokenType;
 
@@ -31,7 +31,6 @@ const extern char* token_str_lookup[];
 
 typedef struct s_token {
   t_tokenType type;
-  struct s_token* parent; 
   struct s_token* children[2];
   void* data; // TokenType defined raw data.
 } t_token;
@@ -57,9 +56,15 @@ typedef struct s_prog_data {
   t_hashtable* funcht;
 } t_prog_data;
 
+typedef struct s_func_call {
+  char* ident;
+  t_statement_pointer* exprs;
+} t_func_call;
+
 void destructor(t_token* t);
 
 void debug_log_token(char* str, t_token*);
 t_prog_data* tokenise( char** remaining);
 t_token* tryParseExpression(t_token* token, char** remaining, int min_prec);
+t_statement_pointer* try_parse_arguments(char** remaining);
 #endif
