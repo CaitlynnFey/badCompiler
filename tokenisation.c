@@ -32,12 +32,47 @@ void debug_log_token(char* str, t_token* token) {
 		printf("%s logging null token\n", str);
 		return;
 	}
-	printf("%s\t\033[0;32m%p\033[0m, TokenType = %s, Children: %p (%s), %p (%s), Data: %.8s\n", 
-		str, token, token_str_lookup[token->type], token->children[0],
-		token->children[0] ? token_str_lookup[token->children[0]->type] : 0, 
-		token->children[1], token->children[1] ? token_str_lookup[token->children[1]->type] :
-		                            0, token->data ? (char*) token->data : "nil");
-}
+	printf("\033[33;1m%s\033[0m\t\033[32;2m%p\033[0m\t", str, token);
+	switch (token->type) {
+		case TokenAssign:
+			printf("\033[0;31massigning to\033[0m \033[34;1m%s\033[0m\n", (char*)token->data);
+			break;
+		case TokenIntLit:
+			printf("\033[0;31mpushing\033[0m \033[34;1m%s\033[0m\n", (char*)token->data);
+			break;
+		case TokenPlus:
+			printf("\033[0;31madding\033[0m \033[31;2m%p\033[0m and \033[31;2m%p\033[0m\n", token->children[0], token->children[1]);
+			break;
+		case TokenMinus:
+			printf("\033[0;31msubtracting\033[0m \033[31;2m%p\033[0m and \033[31;2m%p\033[0m\n", token->children[0], token->children[1]);
+			break;
+		case TokenMul:
+			printf("\033[0;31mmultiplying\033[0m \033[31;2m%p\033[0m and \033[31;2m%p\033[0m\n", token->children[0], token->children[1]);
+			break;
+		case TokenReturn:
+			printf("\033[0;31mreturning\033[0m \033[31;2m%p\033[0m\n", token->children[0]);
+			break;
+		case TokenIdent:
+			printf("\033[0;31mpushing\033[0m \033[34;1m%s\033[0m\n", (char*)token->data);
+			break;
+		case TokenDiv:
+			printf("\033[0;31dmividing\033[0m \033[31;2m%p\033[0m and \033[31;2m%p\033[0m\n", token->children[0], token->children[1]);
+			break;
+		case TokenDeclIdent:
+			printf("\033[0;31mdeclaring identifier\033[0m \"\033[34;1m%s\033[0m\"\n", (char*)token->data);
+			break;
+		case TokenFuncCall:
+			printf("\033[0;31mcalling\033[0m \033[34;1m%s\033[0m\n", ((t_func_call*)token->data)->ident);
+			break;
+		
+		default:
+			printf("TokenType = %s, Children: %p (%s), %p (%s), Data: %.8s\n", 
+					token_str_lookup[token->type], token->children[0],
+					token->children[0] ? token_str_lookup[token->children[0]->type] : 0, 
+					token->children[1], token->children[1] ? token_str_lookup[token->children[1]->type] :
+					                            0, token->data ? (char*) token->data : "nil");
+  	}
+	}
 
 void rec_debug_log_token(char* str, t_token* token) {
 	debug_log_token(str, token);
@@ -270,7 +305,7 @@ t_statement_pointer* try_parse_arguments(char** remaining) {
 	WHITESPACE();
 	t_statement_pointer* args = NULL;
 	t_statement_pointer* prev = NULL;
-	while(!try_consume_char(remaining, ')')) {
+	while(1) {
 		t_statement_pointer* ptr = calloc(1, sizeof(t_statement_pointer));
 
 		ptr->statement = tryParseExpression(NULL, remaining, 0);
@@ -283,6 +318,8 @@ t_statement_pointer* try_parse_arguments(char** remaining) {
 		if(!try_consume_char(remaining, ','))
 			break;
 	}
+	WHITESPACE();
+	expect_consume_char(remaining, ')');
 	return args;
 }
 
@@ -480,7 +517,9 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 				exit(EXT_FAILURE_PARSING);
 			}
 			ret->children[0] = assign;
-			printf("created declident child assign %p\n", assign);
+			#ifdef TOKENISATION_DEBUG
+				printf("created declident child assign %p\n", assign);
+			#endif
 		}
 		
 		expect_consume_char(remaining, ';');
@@ -540,8 +579,8 @@ t_hashtable* tryParseIdentList(char** remaining, t_hashtable* ht) {
 		if(**remaining == ')')
 			break;
 		size_t keywordoffset = findKeywordPointerOffset(*remaining);
-		char* key = calloc(keywordoffset + 2, sizeof(char));
-		memcpy(key, *remaining, keywordoffset + 1);
+		char* key = calloc(keywordoffset + 1, sizeof(char));
+		memcpy(key, *remaining, keywordoffset );
 		t_htentry* entry = calloc(1, sizeof (t_htentry));
 		entry->key = key;
 		entry->value = calloc(1, sizeof(size_t));
@@ -568,6 +607,7 @@ t_func_data* tryParseFunction(char** remaining) {
 	
 	expect_consume_char(remaining, '(');
 	data->identht = tryParseIdentList(remaining, hashtable_create());
+	data->args = data->identht->filled_cells;
 	WHITESPACE();
 	expect_consume_char(remaining, ')');
 	WHITESPACE();	
@@ -588,7 +628,7 @@ t_func_data* tryParseFunction(char** remaining) {
 	}
 	WHITESPACE();
 	#ifdef TOKENISATION_DEBUG
-		printf("created function %#zx ident %s\n", (size_t)data, data->ident);
+		printf("created function %#zx ident %s with %zu args\n", (size_t)data, data->ident, data->args);
 	#endif
 	return data;
 }
@@ -606,9 +646,6 @@ t_prog_data* tokenise(char** remaining) {
 		e->key = cur->func->ident;
 		e->value = cur->func;
 		ret->funcht = hashtable_put(ret->funcht, e);
-		#ifdef TOKENISATION_DEBUG
-			printf("parsed func %s\n", cur->func->ident);
-		#endif
 		if(prev) 
 			prev->next = cur;
 		else

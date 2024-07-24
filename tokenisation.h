@@ -21,7 +21,7 @@ typedef enum TokenTypes {
   TokenMul = 7,
   TokenReturn = 8, // one child only.
   TokenIdent = 9, // data string of ident name
-  TokenDiv = 10,
+  TokenDiv = 10, // two children
   TokenDeclIdent = 11, // data string of ident name
   TokenFuncCall = 12, // data t_func_call, leaf
   TokenInvalid = 13
@@ -44,6 +44,7 @@ typedef struct s_func_data {
   char* ident;
   t_statement_pointer* statements;
   t_hashtable* identht;
+  size_t args;
 } t_func_data;
 
 typedef struct s_func_ptr {
