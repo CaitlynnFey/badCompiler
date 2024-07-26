@@ -1,0 +1,12 @@
+simplemain.l
+4
+1var.l
+3
+2var.l
+12
+1argfunc.l
+9
+2argfunc.l
+6
+3argfunc.l
+6

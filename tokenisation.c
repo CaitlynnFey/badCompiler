@@ -589,6 +589,7 @@ t_hashtable* tryParseIdentList(char** remaining, t_hashtable* ht) {
 		ht = hashtable_put(ht, entry);
 		*remaining += keywordoffset;
 		WHITESPACE();
+		i++;
 	} while (try_consume_char(remaining, ','));
 	return ht;
 }

@@ -1,9 +1,8 @@
 main() {
-  let test = func(4);
+  let test = mul(4, 3);
   return test;
 }
 
-func(a) {
-  let b = 3;
+mul(a, b) {
   return a * b;
 }

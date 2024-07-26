@@ -1,39 +1,36 @@
 global _start
 
 _start:
-	;tokendeclident
-	sub rsp, 8
 	;intlit
-	push 4
+	push 1
+	;intlit
+	push 2
+	;intlit
+	push 3
 	call func
 	push rax
-	;tokenassign
-	pop rax
-	mov [rsp + 8], rax
-	;tokenident
-	push QWORD [rsp + 8]
 	;return (main)
 	pop rdi
 	mov rax, 60
 	syscall
 func:
-	;tokendeclident
-	sub rsp, 8
-	;intlit
-	push 3
-	;tokenassign
-	pop rax
-	mov [rsp + 0], rax
 	;tokenident
-	push QWORD [rsp + 16]
+	push QWORD [rsp + 24]
 	;tokenident
-	push QWORD [rsp + 8]
-	;tokenmul
+	push QWORD [rsp + 24]
+	;tokenident
+	push QWORD [rsp + 24]
+	;tokenplus
 	pop rax
 	pop rbx
-	mul rbx
+	add rax, rbx
+	push rax
+	;tokenplus
+	pop rax
+	pop rbx
+	add rax, rbx
 	push rax
 	;return
 	pop rax
-	add rsp, 8
+	add rsp, 0
 	ret

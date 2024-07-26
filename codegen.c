@@ -9,7 +9,7 @@
 
 #define EXT_PUT_HT 99
 
-#define CDGEN_DEBUG
+// #define CDGEN_DEBUG
 
 void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, size_t* stacksize, t_func_data* cur_func, size_t flags) {
   #ifdef CDGEN_DEBUG
@@ -27,7 +27,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
           fprintf(outfile, "\t;return (main)\n\tpop rdi\n\tmov rax, 60\n\tsyscall\n");
         } else {
           
-        fprintf(outfile, "\t;return\n\tpop rax\n\tadd rsp, %li\n\tret\n", 8 * (*stacksize - cur_func->args - 2));
+        fprintf(outfile, "\t;return\n\tpop rax\n\tadd rsp, %li\n\tret\n", 8 * (cur_func->identht->filled_cells - cur_func->args));
         }
       }
       break;
@@ -89,10 +89,13 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
     case TokenIdent:
       {
         size_t* stack_loc = hashtable_get(cur_func->identht, cur_token->data);
+        #ifdef CDGEN_DEBUG
+          printf("var %s is at stack loc %lu, cur stack loc %lu\n", (char*)cur_token->data, *stack_loc, *stacksize);
+        #endif
         if(!stack_loc) {
           fprintf(stderr, "\033[0;31mExpected valid, declared ident. Got ident: '%s'\033[0m %p\n", (char* )cur_token->data, stack_loc);
           exit(16);
-        }    
+        }
         fprintf(outfile, "\t;tokenident\n\tpush QWORD [rsp + %lu]\n", (*stacksize - *stack_loc - 1) * 8);
         *stacksize += 1; 
       }
