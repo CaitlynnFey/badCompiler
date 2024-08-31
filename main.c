@@ -31,10 +31,11 @@ int main(const int argc, char** argv) {
     filebuffers[i][length] = '\0';
     fclose(srcFiles[i]);
   }
-  
+
+  t_prog_data* prog = NULL;
   for (int i = 0; i < argc - 1; i++) {
     char* a = filebuffers[i];
-    t_prog_data* prog = tokenise(&a);
+    prog = tokenise(prog, &a);
     FILE* outfile = fopen("out.asm", "w");
     codegen(prog, outfile);
     fclose(outfile);

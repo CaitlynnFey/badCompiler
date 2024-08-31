@@ -86,7 +86,7 @@ void rec_debug_log_token(char* str, t_token* token) {
 
 void expect_consume_char(char** remaining, char c) {
 	#ifdef TOKENISATION_DEBUG
-		printf("consuming (expect) '%c' from \"%.1s...\"\n", c, *remaining);
+		printf("consuming (expect) '%c' from \"%.3s...\"\n", c, *remaining);
 	#endif
 	if(**remaining != c) {
 		fprintf(stderr, "Failed expect_consume_char with string \"%s\", expecting char '%c'\n", *remaining, c);
@@ -97,7 +97,7 @@ void expect_consume_char(char** remaining, char c) {
 
 uint_least8_t try_consume_char(char** remaining, char c) {
 	#ifdef TOKENISATION_DEBUG
-		printf("consuming (try) '%c' from \"%.1s...\"\n", c, *remaining);
+		printf("consuming (try) '%c' from \"%.3s...\"\n", c, *remaining);
 	#endif
 	uint_least8_t ret = **remaining == c;
 	if(ret)
@@ -634,10 +634,10 @@ t_func_data* tryParseFunction(char** remaining) {
 	return data;
 }
 
-t_prog_data* tokenise(char** remaining) {
+t_prog_data* tokenise(t_prog_data* program, char** remaining) {
 	t_func_ptr* ptr;
 	t_func_ptr* prev = NULL;
-	t_prog_data* ret = calloc(1, sizeof(t_prog_data));
+	t_prog_data* ret = program ? program : calloc(1, sizeof(t_prog_data));
 	ret->funcht = hashtable_create();
 	
 	for(t_func_data* t = tryParseFunction(remaining); t; t = tryParseFunction(remaining)) {	

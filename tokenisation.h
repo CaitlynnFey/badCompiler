@@ -65,7 +65,7 @@ typedef struct s_func_call {
 void destructor(t_token* t);
 
 void debug_log_token(char* str, t_token*);
-t_prog_data* tokenise( char** remaining);
+t_prog_data* tokenise(t_prog_data* program, char** remaining);
 t_token* tryParseExpression(t_token* token, char** remaining, int min_prec);
 t_statement_pointer* try_parse_arguments(char** remaining);
 #endif
