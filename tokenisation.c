@@ -18,11 +18,11 @@
 
 const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "ident", "div", "declident", "funccall", "invaltoken"};
 
-void destructor(t_token* t) {
+void token_destructor(t_token* t) {
 	if (t == NULL) 
 		return;
-	destructor(t->children[0]);
-	destructor(t->children[1]);
+	token_destructor(t->children[0]);
+	token_destructor(t->children[1]);
 	free(t->data);
 	free(t);
 }
@@ -388,7 +388,7 @@ t_token* tryParseTerm(char** remaining) {
 
 	fprintf(stderr, "REACHED TOKEN DESTRUCTOR IN TERM PARSER");
 	//should never be reached!
-	destructor(returnToken);
+	token_destructor(returnToken);
 	return NULL;
 }
 
@@ -607,7 +607,7 @@ t_func_data* tryParseFunction(char** remaining) {
 	data->ident = fn_idnt;
 	
 	expect_consume_char(remaining, '(');
-	data->identht = tryParseIdentList(remaining, hashtable_create());
+	data->identht = tryParseIdentList(remaining, hashtable_create(&hashtable_destroy));
 	data->args = data->identht->filled_cells;
 	WHITESPACE();
 	expect_consume_char(remaining, ')');
@@ -634,11 +634,22 @@ t_func_data* tryParseFunction(char** remaining) {
 	return data;
 }
 
+int func_destructor(void* func_data) {
+	t_func_data* func = (t_func_data*) func_data;
+	free(func->ident);
+	hashtable_destroy(func->identht);
+	for(t_statement_pointer* p = func->statements; p; p = p->next) {
+		token_destructor(p->statement);
+	}
+	free(func);
+	return 0;
+}
+
 t_prog_data* tokenise(t_prog_data* program, char** remaining) {
 	t_func_ptr* ptr;
 	t_func_ptr* prev = NULL;
 	t_prog_data* ret = program ? program : calloc(1, sizeof(t_prog_data));
-	ret->funcht = hashtable_create();
+	ret->funcht = hashtable_create(&func_destructor);
 	
 	for(t_func_data* t = tryParseFunction(remaining); t; t = tryParseFunction(remaining)) {	
 		t_func_ptr* cur = calloc(1, sizeof(t_func_ptr));

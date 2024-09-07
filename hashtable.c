@@ -19,7 +19,7 @@ uint64_t hash_fnv1a(char* data) {
 	return hash;
 }
 
-t_hashtable* hashtable_create_internal(size_t size) {
+t_hashtable* hashtable_create_internal(size_t size, int (*destructor)(void*)) {
 	#ifdef HT_DEBUG
 		printf("hashtable_create_internal(%zu)\n", size);
 	#endif
@@ -31,14 +31,15 @@ t_hashtable* hashtable_create_internal(size_t size) {
 	ht->filled_cells = 0;
 	ht->ht_begin = calloc(size, sizeof(t_htentry*));
 	memset(ht->ht_begin, 0, ht->size);
+	ht->destructor_ptr = destructor;
 	#ifdef HT_DEBUG
 		printf("htpointer creation: %p\n", ht);
 	#endif
 	return ht;
 }
 
-t_hashtable* hashtable_create() {
-	return hashtable_create_internal(16);
+t_hashtable* hashtable_create(int (*destructor)(void*)) {
+	return hashtable_create_internal(16, destructor);
 }
 int free_element(t_hashtable* ht, t_htentry* entry) {
 	if(ht->destructor_ptr(entry->value)) {
@@ -69,7 +70,8 @@ int hashtable_remove(t_hashtable* ht, char* key) {
 	return 0;
 }
 
-void hashtable_destroy(t_hashtable* ht) {
+int hashtable_destroy(void* hashtable) {
+	t_hashtable* ht = hashtable;
 	for(size_t i = 0; ht->filled_cells != 0; i++) {
 		if(!ht->ht_begin[i])
 			continue;
@@ -77,6 +79,7 @@ void hashtable_destroy(t_hashtable* ht) {
 		ht->ht_begin[i] = NULL;
 	}
 	free(ht);
+	return 0;
 }
 
 int hashtable_copy(t_hashtable* src, t_hashtable* dest) {
@@ -106,7 +109,7 @@ t_hashtable* hashtable_put_internal(t_hashtable* ht, t_htentry* entry, uint64_t 
 	#endif
 	
 	if(++ht->filled_cells > ht->size * 0.33f) {
-		t_hashtable* new = hashtable_create_internal(ht->size*2);
+		t_hashtable* new = hashtable_create_internal(ht->size*2, ht->destructor_ptr);
 		if(hashtable_copy(ht, new)) {
 			fprintf(stderr, "failed to copy?!");
 			exit(-1);

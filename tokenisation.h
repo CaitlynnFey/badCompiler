@@ -62,7 +62,7 @@ typedef struct s_func_call {
   t_statement_pointer* exprs;
 } t_func_call;
 
-void destructor(t_token* t);
+void token_destructor(t_token* t);
 
 void debug_log_token(char* str, t_token*);
 t_prog_data* tokenise(t_prog_data* program, char** remaining);
