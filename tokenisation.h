@@ -27,6 +27,11 @@ typedef enum TokenTypes {
   TokenInvalid = 13
 } t_tokenType;
 
+typedef enum basetype {
+  integer,
+  floating_point
+} t_base_type;
+
 const extern char* token_str_lookup[];
 
 typedef struct s_token {
@@ -34,6 +39,12 @@ typedef struct s_token {
   struct s_token* children[2];
   void* data; // TokenType defined raw data.
 } t_token;
+
+typedef struct s_context {
+  t_hashtable* identht;
+  struct s_context* caster; //nullable
+  struct s_context* shadow; //nullable
+} t_context;
 
 typedef struct s_statementPointer {
   t_token* statement;
@@ -43,7 +54,7 @@ typedef struct s_statementPointer {
 typedef struct s_func_data {
   char* ident;
   t_statement_pointer* statements;
-  t_hashtable* identht;
+  t_context* context;
   size_t args;
 } t_func_data;
 
@@ -62,7 +73,17 @@ typedef struct s_func_call {
   t_statement_pointer* exprs;
 } t_func_call;
 
+typedef struct s_ident {
+  char* name;
+  t_base_type type;
+} t_ident;
+
 void token_destructor(t_token* t);
+
+int ident_destructor(void* ident);
+
+t_context* create_context(t_context* superior_context);
+int context_destructor(void* context);
 
 void debug_log_token(char* str, t_token*);
 t_prog_data* tokenise(t_prog_data* program, char** remaining);

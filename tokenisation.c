@@ -84,6 +84,34 @@ void rec_debug_log_token(char* str, t_token* token) {
 	}
 }
 
+int ident_destructor(void* ident) {
+	t_ident* idt = ident;
+	free(idt->name);
+	free(idt);
+	return 0;
+}
+
+t_context* create_context(t_context* supctxt) {
+	t_context* ctxt = calloc(1, sizeof(t_context));
+	ctxt->identht = hashtable_create(&ident_destructor);
+	ctxt->caster = supctxt;
+	if(supctxt)
+		supctxt->shadow = ctxt;
+	return ctxt;
+}
+
+
+//doesnt properly deal with calli
+int context_destructor(void* context) {
+	if(!context)
+		return 0;
+	t_context* ctxt = context;
+	hashtable_destroy(ctxt->identht);
+	t_context* shadow = ctxt->shadow;
+	free(ctxt);
+	return context_destructor(shadow);
+}
+
 void expect_consume_char(char** remaining, char c) {
 	#ifdef TOKENISATION_DEBUG
 		printf("consuming (expect) '%c' from \"%.3s...\"\n", c, *remaining);
@@ -607,8 +635,12 @@ t_func_data* tryParseFunction(char** remaining) {
 	data->ident = fn_idnt;
 	
 	expect_consume_char(remaining, '(');
-	data->identht = tryParseIdentList(remaining, hashtable_create(&hashtable_destroy));
-	data->args = data->identht->filled_cells;
+
+	t_context* ctxt = create_context(NULL);
+	tryParseIdentList(remaining, ctxt->identht);
+	
+	data->context = ctxt;
+	data->args = data->context->identht->filled_cells;
 	WHITESPACE();
 	expect_consume_char(remaining, ')');
 	WHITESPACE();	
@@ -637,7 +669,7 @@ t_func_data* tryParseFunction(char** remaining) {
 int func_destructor(void* func_data) {
 	t_func_data* func = (t_func_data*) func_data;
 	free(func->ident);
-	hashtable_destroy(func->identht);
+	context_destructor(func->context);
 	for(t_statement_pointer* p = func->statements; p; p = p->next) {
 		token_destructor(p->statement);
 	}

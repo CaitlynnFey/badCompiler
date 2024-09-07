@@ -27,7 +27,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
           fprintf(outfile, "\t;return (main)\n\tpop rdi\n\tmov rax, 60\n\tsyscall\n");
         } else {
           
-        fprintf(outfile, "\t;return\n\tpop rax\n\tadd rsp, %li\n\tret\n", 8 * (cur_func->identht->filled_cells - cur_func->args));
+        fprintf(outfile, "\t;return\n\tpop rax\n\tadd rsp, %li\n\tret\n", 8 * (cur_func->context->identht->filled_cells - cur_func->args));
         }
       }
       break;
@@ -65,7 +65,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
         entry->key = cur_token->data;
         entry->value = calloc(1, sizeof(size_t));
         *((size_t*) entry->value) = *stacksize;
-        cur_func->identht = hashtable_put(cur_func->identht, entry);
+        cur_func->context->identht = hashtable_put(cur_func->context->identht, entry);
         fprintf(outfile, "\t;tokendeclident\n\tsub rsp, 8\n");
         *stacksize += 1;
         if(cur_token->children[0])
@@ -75,7 +75,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
       
     case TokenAssign:
       {
-        size_t* stack_loc = hashtable_get(cur_func->identht, cur_token->data);
+        size_t* stack_loc = hashtable_get(cur_func->context->identht, cur_token->data);
         if(!stack_loc) {
           fprintf(stderr, "\033[0;31mExpected valid, declared ident. Got ident: '%s'\033[0m\n", (char* )cur_token->data);
           exit(16);
@@ -88,7 +88,7 @@ void codegen_internal(t_token* cur_token, FILE* outfile, t_hashtable* funcs, siz
       
     case TokenIdent:
       {
-        size_t* stack_loc = hashtable_get(cur_func->identht, cur_token->data);
+        size_t* stack_loc = hashtable_get(cur_func->context->identht, cur_token->data);
         #ifdef CDGEN_DEBUG
           printf("var %s is at stack loc %lu, cur stack loc %lu\n", (char*)cur_token->data, *stack_loc, *stacksize);
         #endif
@@ -134,7 +134,7 @@ void codegen(t_prog_data* prog_data, FILE* outfile) {
                 strcmp(cur->func->ident, "main") ? 
                 cur->func->ident : "_start");
 
-    size_t stacksize = cur->func->identht->filled_cells + (strcmp(cur->func->ident, "main") != 0);
+    size_t stacksize = cur->func->context->identht->filled_cells + (strcmp(cur->func->ident, "main") != 0);
 
     #ifdef CDGEN_DEBUG
       printf("\n\n\033[31;1mGenerating function \"%s\" with stacksize %lu\033[0m\n\n", cur->func->ident, stacksize);
