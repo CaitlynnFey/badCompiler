@@ -13,11 +13,10 @@ typedef enum AssociativityTypes {
 typedef enum TokenTypes {
   TokenDebugInvalid = 0,
   TokenAssign = 1, // data string name of assigned ident
-  TokenScopeOpen = 2, // tbd
-  TokenScopeClose = 3, // tbd
-  TokenIntLit = 4, // data pointer to STRING!! of value; possible child
+  TokenScope = 2, // data pointer to t_scope_data
+  TokenIntLit = 4, // data pointer to STRING!! of value
   TokenPlus = 5, // two children
-  TokenMinus = 6, // two children
+  TokenMinus = 6, // two children'
   TokenMul = 7,
   TokenReturn = 8, // one child only.
   TokenIdent = 9, // data string of ident name
@@ -50,6 +49,11 @@ typedef struct s_statementPointer {
   t_token* statement;
   struct s_statementPointer* next;
 } t_statement_pointer;
+
+typedef struct s_scope_data {
+	t_context* ctxt;
+	t_statement_pointer* stmts;
+} t_scope_data;
 
 typedef struct s_func_data {
   char* ident;

@@ -16,7 +16,7 @@
 
 // #define TOKENISATION_DEBUG
 
-const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "scope close", "intlit", "plus", "minus", "mul", "ret", "ident", "div", "declident", "funccall", "invaltoken"};
+const char *token_str_lookup[] = {"DEBUG INVALID", "assign", "scopen", "NULL", "intlit", "plus", "minus", "mul", "ret", "ident", "div", "declident", "funccall", "invaltoken"};
 
 void token_destructor(t_token* t) {
 	if (t == NULL) 
@@ -100,8 +100,6 @@ t_context* create_context(t_context* supctxt) {
 	return ctxt;
 }
 
-
-//doesnt properly deal with calli
 int context_destructor(void* context) {
 	if(!context)
 		return 0;
@@ -273,10 +271,6 @@ t_tokenType charToTokenType(char c) {
 			return TokenMul;
 		case '/':
 			return TokenDiv;
-		case '{':
-			return TokenScopeOpen;
-		case '}':
-			return TokenScopeClose;
 		case '=':
 			return TokenAssign;
 		default:
@@ -573,6 +567,10 @@ t_token* tryParseStatement(t_token* parent, char** remaining) {
 			printf("created return token %p\n", ret);
 		#endif
 		return ret;
+	}
+
+	if(try_consume_char(remaining, '{')) {
+		//TODO
 	}
 
 	if(try_consume_char(remaining, '}')) {
